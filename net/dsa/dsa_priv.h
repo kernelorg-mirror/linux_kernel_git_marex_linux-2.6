@@ -210,6 +210,7 @@ extern const struct dsa_device_ops edsa_netdev_ops;
 extern const struct dsa_device_ops gswip_netdev_ops;
 
 /* tag_ksz.c */
+extern const struct dsa_device_ops ksz8795_netdev_ops;
 extern const struct dsa_device_ops ksz9477_netdev_ops;
 
 /* tag_lan9303.c */

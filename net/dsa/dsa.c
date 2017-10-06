@@ -55,6 +55,9 @@ const struct dsa_device_ops *dsa_device_ops[DSA_TAG_LAST] = {
 #ifdef CONFIG_NET_DSA_TAG_GSWIP
 	[DSA_TAG_PROTO_GSWIP] = &gswip_netdev_ops,
 #endif
+#ifdef CONFIG_NET_DSA_TAG_KSZ8795
+	[DSA_TAG_PROTO_KSZ8795] = &ksz8795_netdev_ops,
+#endif
 #ifdef CONFIG_NET_DSA_TAG_KSZ9477
 	[DSA_TAG_PROTO_KSZ9477] = &ksz9477_netdev_ops,
 #endif
@@ -90,6 +93,9 @@ const char *dsa_tag_protocol_to_str(const struct dsa_device_ops *ops)
 #endif
 #ifdef CONFIG_NET_DSA_TAG_GSWIP
 		[DSA_TAG_PROTO_GSWIP] = "gswip",
+#endif
+#ifdef CONFIG_NET_DSA_TAG_KSZ8795
+		[DSA_TAG_PROTO_KSZ8795] = "ksz8795",
 #endif
 #ifdef CONFIG_NET_DSA_TAG_KSZ9477
 		[DSA_TAG_PROTO_KSZ9477] = "ksz9477",
