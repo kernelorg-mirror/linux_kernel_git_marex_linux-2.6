@@ -42,6 +42,79 @@ void ksz_update_port_member(struct ksz_device *dev, int port)
 }
 EXPORT_SYMBOL_GPL(ksz_update_port_member);
 
+static void port_r_cnt(struct ksz_device *dev, int port)
+{
+	struct ksz_port_mib *mib = &dev->ports[port].mib;
+	u64 *dropped;
+
+	/* Some ports may not have MIB counters before SWITCH_COUNTER_NUM. */
+	while (mib->cnt_ptr < dev->reg_mib_cnt) {
+		dev->dev_ops->r_mib_cnt(dev, port, mib->cnt_ptr,
+					&mib->counters[mib->cnt_ptr]);
+		++mib->cnt_ptr;
+	}
+
+	/* last one in storage */
+	dropped = &mib->counters[dev->mib_cnt];
+
+	/* Some ports may not have MIB counters after SWITCH_COUNTER_NUM. */
+	while (mib->cnt_ptr < dev->mib_cnt) {
+		dev->dev_ops->r_mib_pkt(dev, port, mib->cnt_ptr,
+					dropped, &mib->counters[mib->cnt_ptr]);
+		++mib->cnt_ptr;
+	}
+	mib->cnt_ptr = 0;
+}
+
+static void ksz_mib_read_work(struct work_struct *work)
+{
+	struct ksz_device *dev =
+		container_of(work, struct ksz_device, mib_read);
+	struct ksz_port *p;
+	struct ksz_port_mib *mib;
+	int i;
+
+	for (i = 0; i < dev->mib_port_cnt; i++) {
+		p = &dev->ports[i];
+		if (!p->on)
+			continue;
+		mib = &p->mib;
+		mutex_lock(&mib->cnt_mutex);
+
+		/* read only dropped counters when link is not up */
+		if (!p->phydev.link)
+			mib->cnt_ptr = dev->reg_mib_cnt;
+		port_r_cnt(dev, i);
+		mutex_unlock(&mib->cnt_mutex);
+	}
+}
+
+static void mib_monitor(struct timer_list *t)
+{
+	struct ksz_device *dev = from_timer(dev, t, mib_read_timer);
+
+	mod_timer(&dev->mib_read_timer, jiffies + dev->mib_read_interval);
+	schedule_work(&dev->mib_read);
+}
+
+void ksz_init_mib_timer(struct ksz_device *dev)
+{
+	int i;
+
+	/* Read MIB counters every 30 seconds to avoid overflow. */
+	dev->mib_read_interval = msecs_to_jiffies(30000);
+
+	INIT_WORK(&dev->mib_read, ksz_mib_read_work);
+	timer_setup(&dev->mib_read_timer, mib_monitor, 0);
+
+	for (i = 0; i < dev->mib_port_cnt; i++)
+		dev->dev_ops->port_init_cnt(dev, i);
+
+	/* Start the timer 2 seconds later. */
+	dev->mib_read_timer.expires = jiffies + msecs_to_jiffies(2000);
+	add_timer(&dev->mib_read_timer);
+}
+
 int ksz_phy_read16(struct dsa_switch *ds, int addr, int reg)
 {
 	struct ksz_device *dev = ds->priv;
@@ -63,6 +136,23 @@ int ksz_phy_write16(struct dsa_switch *ds, int addr, int reg, u16 val)
 }
 EXPORT_SYMBOL_GPL(ksz_phy_write16);
 
+void ksz_adjust_link(struct dsa_switch *ds, int port,
+		     struct phy_device *phydev)
+{
+	struct ksz_device *dev = ds->priv;
+	struct ksz_port *p = &dev->ports[port];
+
+	if (phydev->link) {
+		p->phydev.speed = phydev->speed;
+		p->phydev.duplex = phydev->duplex;
+		p->phydev.link = 1;
+		dev->live_ports |= (1 << port) & dev->on_ports;
+	} else if (p->phydev.link) {
+		p->phydev.link = 0;
+		dev->live_ports &= ~(1 << port);
+	}
+}
+
 int ksz_sset_count(struct dsa_switch *ds, int port, int sset)
 {
 	struct ksz_device *dev = ds->priv;
@@ -73,6 +163,27 @@ int ksz_sset_count(struct dsa_switch *ds, int port, int sset)
 	return dev->mib_cnt;
 }
 EXPORT_SYMBOL_GPL(ksz_sset_count);
+
+void ksz_get_ethtool_stats(struct dsa_switch *ds, int port, uint64_t *buf)
+{
+	struct ksz_device *dev = ds->priv;
+	struct ksz_port_mib *mib;
+
+	mib = &dev->ports[port].mib;
+
+	mutex_lock(&dev->stats_mutex);
+
+	/* freeze MIB counters if supported */
+	if (dev->dev_ops->freeze_mib)
+		dev->dev_ops->freeze_mib(dev, port, true);
+	mutex_lock(&mib->cnt_mutex);
+	port_r_cnt(dev, port);
+	mutex_unlock(&mib->cnt_mutex);
+	if (dev->dev_ops->freeze_mib)
+		dev->dev_ops->freeze_mib(dev, port, false);
+	memcpy(buf, mib->counters, dev->mib_cnt * sizeof(u64));
+	mutex_unlock(&dev->stats_mutex);
+}
 
 int ksz_port_bridge_join(struct dsa_switch *ds, int port,
 			 struct net_device *br)
@@ -240,6 +351,7 @@ int ksz_enable_port(struct dsa_switch *ds, int port, struct phy_device *phy)
 
 	/* setup slave port */
 	dev->dev_ops->port_setup(dev, port, false);
+	dev->dev_ops->phy_setup(dev, port, phy);
 
 	/* port_stp_state_set() will be called after to enable the port so
 	 * there is no need to do anything.
@@ -340,6 +452,12 @@ EXPORT_SYMBOL(ksz_switch_register);
 
 void ksz_switch_remove(struct ksz_device *dev)
 {
+	/* timer started */
+	if (dev->mib_read_timer.expires) {
+		del_timer_sync(&dev->mib_read_timer);
+		flush_work(&dev->mib_read);
+	}
+
 	dev->dev_ops->exit(dev);
 	dsa_unregister_switch(dev->ds);
 

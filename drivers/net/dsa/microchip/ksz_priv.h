@@ -14,8 +14,6 @@
 #include <linux/etherdevice.h>
 #include <net/dsa.h>
 
-#include "ksz9477_reg.h"
-
 struct ksz_io_ops;
 
 struct vlan_table {
@@ -23,6 +21,7 @@ struct vlan_table {
 };
 
 struct ksz_port_mib {
+	struct mutex cnt_mutex;		/* structure access */
 	u8 cnt_ptr;
 	u64 *counters;
 };
@@ -78,8 +77,6 @@ struct ksz_device {
 	u32 regs_size;
 
 	struct vlan_table *vlan_cache;
-
-	u64 mib_value[TOTAL_SWITCH_COUNTER_NUM];
 
 	u8 *txbuf;
 
@@ -137,6 +134,8 @@ struct ksz_dev_ops {
 	u32 (*get_port_addr)(int port, int offset);
 	void (*cfg_port_member)(struct ksz_device *dev, int port, u8 member);
 	void (*flush_dyn_mac_table)(struct ksz_device *dev, int port);
+	void (*phy_setup)(struct ksz_device *dev, int port,
+			  struct phy_device *phy);
 	void (*port_setup)(struct ksz_device *dev, int port, bool cpu_port);
 	void (*r_phy)(struct ksz_device *dev, u16 phy, u16 reg, u16 *val);
 	void (*w_phy)(struct ksz_device *dev, u16 phy, u16 reg, u16 val);
@@ -151,6 +150,7 @@ struct ksz_dev_ops {
 			  u64 *cnt);
 	void (*r_mib_pkt)(struct ksz_device *dev, int port, u16 addr,
 			  u64 *dropped, u64 *cnt);
+	void (*freeze_mib)(struct ksz_device *dev, int port, bool freeze);
 	void (*port_init_cnt)(struct ksz_device *dev, int port);
 	int (*shutdown)(struct ksz_device *dev);
 	int (*detect)(struct ksz_device *dev);
