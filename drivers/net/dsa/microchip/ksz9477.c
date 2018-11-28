@@ -396,7 +396,7 @@ static void ksz9477_port_stp_state_set(struct dsa_switch *ds, int port,
 	struct ksz_device *dev = ds->priv;
 	struct ksz_port *p = &dev->ports[port];
 	u8 data;
-	int member = -1;
+	int i, member = -1;
 
 	ksz_pread8(dev, port, P_STP_CTRL, &data);
 	data &= ~(PORT_TX_ENABLE | PORT_RX_ENABLE | PORT_LEARN_DISABLE);
@@ -454,8 +454,8 @@ static void ksz9477_port_stp_state_set(struct dsa_switch *ds, int port,
 		dev->tx_ports &= ~(1 << port);
 
 	/* Port membership may share register with STP state. */
-	if (member >= 0 && member != p->member)
-		ksz9477_cfg_port_member(dev, port, (u8)member);
+	for (i = 0; i < SWITCH_PORT_NUM; i++)
+		ksz9477_cfg_port_member(dev, i, (u8)member);
 
 	/* Check if forwarding needs to be updated. */
 	if (state != BR_STATE_FORWARDING) {
