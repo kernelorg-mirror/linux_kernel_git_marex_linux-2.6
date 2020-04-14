@@ -118,6 +118,21 @@
 			  "SD_DATA3_R";
 };
 
+&spi {
+	status = "okay";
+	cs-gpios = <&gpio 8 1>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&spi0_gpio7>;
+
+	ks8851@0 {
+		compatible = "ks8851";
+		spi-max-frequency = <25000000>;
+		reg = <0>;
+		interrupt-parent = <&gpio>;
+		interrupts = <25 IRQ_TYPE_EDGE_FALLING>;
+	};
+};
+
 &pwm {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pwm0_gpio40 &pwm1_gpio41>;
