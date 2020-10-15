@@ -1391,6 +1391,51 @@ static const struct of_device_id ks8851_ml_dt_ids[] = {
 MODULE_DEVICE_TABLE(of, ks8851_ml_dt_ids);
 #endif
 
+static ssize_t ks8851_show_read_test(struct device *dev,
+				     struct device_attribute *attr, char *buf)
+{
+	struct net_device *ndev = dev_get_drvdata(dev);
+	struct ks_net *ks = netdev_priv(ndev);
+	int i;
+
+	trace_printk("Start CIDER register READ test\n");
+	for (i = 0; i < 1000000; i++)
+		ioread16(ks->hw_addr_cmd);
+	trace_printk("Stop  CIDER register READ test\n");
+
+	return 0;
+}
+
+static ssize_t ks8851_show_write_test(struct device *dev,
+				     struct device_attribute *attr, char *buf)
+{
+	struct net_device *ndev = dev_get_drvdata(dev);
+	struct ks_net *ks = netdev_priv(ndev);
+	u16 cider = ks_rdreg16(ks, KS_CIDER);
+	int i;
+
+	trace_printk("Start CIDER register WRITE test\n");
+	for (i = 0; i < 1000000; i++)
+		iowrite16(KS_CIDER | ((BE1 | BE0) << (KS_CIDER & 0x02)), ks->hw_addr_cmd);
+	trace_printk("Stop  CIDER register WRITE test\n");
+
+	return 0;
+}
+
+static DEVICE_ATTR(read_test, 0440, ks8851_show_read_test, NULL);
+static DEVICE_ATTR(write_test, 0440, ks8851_show_write_test, NULL);
+
+static struct attribute *ks8851_device_attrs[] = {
+	&dev_attr_read_test.attr,
+	&dev_attr_write_test.attr,
+	NULL,
+};
+
+
+static const struct attribute_group ks8851_attr_group = {
+	.attrs = ks8851_device_attrs,
+};
+
 static int ks8851_probe(struct platform_device *pdev)
 {
 	int err;
@@ -1474,9 +1519,15 @@ static int ks8851_probe(struct platform_device *pdev)
 		goto err_free;
 	}
 
+	err = sysfs_create_group(&pdev->dev.kobj, &ks8851_attr_group);
+	if (err) {
+		netdev_err(netdev, "Error creating sysfs files\n");
+		goto err_free;
+	}
+
 	err = register_netdev(netdev);
 	if (err)
-		goto err_free;
+		goto err_free_sysfs;
 
 	platform_set_drvdata(pdev, netdev);
 
@@ -1531,6 +1582,8 @@ static int ks8851_probe(struct platform_device *pdev)
 
 err_pdata:
 	unregister_netdev(netdev);
+err_free_sysfs:
+	sysfs_remove_group(&pdev->dev.kobj, &ks8851_attr_group);
 err_free:
 	free_netdev(netdev);
 	return err;
@@ -1541,6 +1594,7 @@ static int ks8851_remove(struct platform_device *pdev)
 	struct net_device *netdev = platform_get_drvdata(pdev);
 
 	unregister_netdev(netdev);
+	sysfs_remove_group(&pdev->dev.kobj, &ks8851_attr_group);
 	free_netdev(netdev);
 	return 0;
 
