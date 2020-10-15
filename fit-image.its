@@ -1,0 +1,60 @@
+/dts-v1/;
+
+/ {
+        description = "Linux kernel and FDT blob for stm32mp157c-dhcom-pdk2";
+        #address-cells = <1>;
+
+        images {
+	        #address-cells = <1>;
+	        #size-cells = <0>;
+                kernel@1 {
+		        #address-cells = <1>;
+		        #size-cells = <0>;
+			reg = <1>;
+                        description = "Linux kernel";
+                        data = /incbin/("./arch/arm/boot/zImage");
+                        type = "kernel";
+                        arch = "arm";
+                        os = "linux";
+                        compression = "none";
+                        load = <0xc0008000>;
+                        entry = <0xc0008000>;
+                        hash@1 {
+				reg = <1>;
+                                algo = "crc32";
+                        };
+                };
+                fdt@1 {
+		        #address-cells = <1>;
+		        #size-cells = <0>;
+			reg = <1>;
+                        description = "Flattened Device Tree blob";
+                        data = /incbin/("./arch/arm/boot/dts/stm32mp157c-dhcom-pdk2.dtb");
+                        type = "flat_dt";
+                        arch = "arm";
+                        compression = "none";
+                        hash@1 {
+				reg = <1>;
+                                algo = "crc32";
+                        };
+                };
+        };
+
+        configurations {
+	        #address-cells = <1>;
+        	#size-cells = <0>;
+                default = "conf@1";
+                conf@1 {
+		        #address-cells = <1>;
+		        #size-cells = <0>;
+			reg = <1>;
+                        description = "Boot Linux kernel with FDT blob";
+                        kernel = "kernel@1";
+                        fdt = "fdt@1";
+                        hash@1 {
+				reg = <1>;
+                                algo = "crc32";
+                        };
+                };
+        };
+};
