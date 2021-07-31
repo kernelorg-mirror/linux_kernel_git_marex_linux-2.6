@@ -861,10 +861,10 @@ static int stm32_cryp_aes_ccm_setauthsize(struct crypto_aead *tfm,
 
 static int stm32_cryp_aes_ecb_encrypt(struct skcipher_request *req)
 {
-	if (req->nbytes % AES_BLOCK_SIZE)
+	if (req->cryptlen % AES_BLOCK_SIZE)
 		return -EINVAL;
 
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_AES | FLG_ECB | FLG_ENCRYPT);
@@ -872,10 +872,10 @@ static int stm32_cryp_aes_ecb_encrypt(struct skcipher_request *req)
 
 static int stm32_cryp_aes_ecb_decrypt(struct skcipher_request *req)
 {
-	if (req->nbytes % AES_BLOCK_SIZE)
+	if (req->cryptlen % AES_BLOCK_SIZE)
 		return -EINVAL;
 
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_AES | FLG_ECB);
@@ -883,10 +883,10 @@ static int stm32_cryp_aes_ecb_decrypt(struct skcipher_request *req)
 
 static int stm32_cryp_aes_cbc_encrypt(struct skcipher_request *req)
 {
-	if (req->nbytes % AES_BLOCK_SIZE)
+	if (req->cryptlen % AES_BLOCK_SIZE)
 		return -EINVAL;
 
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_AES | FLG_CBC | FLG_ENCRYPT);
@@ -894,10 +894,10 @@ static int stm32_cryp_aes_cbc_encrypt(struct skcipher_request *req)
 
 static int stm32_cryp_aes_cbc_decrypt(struct skcipher_request *req)
 {
-	if (req->nbytes % AES_BLOCK_SIZE)
+	if (req->cryptlen % AES_BLOCK_SIZE)
 		return -EINVAL;
 
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_AES | FLG_CBC);
@@ -905,7 +905,7 @@ static int stm32_cryp_aes_cbc_decrypt(struct skcipher_request *req)
 
 static int stm32_cryp_aes_ctr_encrypt(struct skcipher_request *req)
 {
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_AES | FLG_CTR | FLG_ENCRYPT);
@@ -913,7 +913,7 @@ static int stm32_cryp_aes_ctr_encrypt(struct skcipher_request *req)
 
 static int stm32_cryp_aes_ctr_decrypt(struct skcipher_request *req)
 {
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_AES | FLG_CTR);
@@ -962,10 +962,10 @@ static int stm32_cryp_aes_ccm_decrypt(struct aead_request *req)
 
 static int stm32_cryp_des_ecb_encrypt(struct skcipher_request *req)
 {
-	if (req->nbytes % DES_BLOCK_SIZE)
+	if (req->cryptlen % DES_BLOCK_SIZE)
 		return -EINVAL;
 
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_DES | FLG_ECB | FLG_ENCRYPT);
@@ -973,10 +973,10 @@ static int stm32_cryp_des_ecb_encrypt(struct skcipher_request *req)
 
 static int stm32_cryp_des_ecb_decrypt(struct skcipher_request *req)
 {
-	if (req->nbytes % DES_BLOCK_SIZE)
+	if (req->cryptlen % DES_BLOCK_SIZE)
 		return -EINVAL;
 
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_DES | FLG_ECB);
@@ -984,10 +984,10 @@ static int stm32_cryp_des_ecb_decrypt(struct skcipher_request *req)
 
 static int stm32_cryp_des_cbc_encrypt(struct skcipher_request *req)
 {
-	if (req->nbytes % DES_BLOCK_SIZE)
+	if (req->cryptlen % DES_BLOCK_SIZE)
 		return -EINVAL;
 
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_DES | FLG_CBC | FLG_ENCRYPT);
@@ -995,10 +995,10 @@ static int stm32_cryp_des_cbc_encrypt(struct skcipher_request *req)
 
 static int stm32_cryp_des_cbc_decrypt(struct skcipher_request *req)
 {
-	if (req->nbytes % DES_BLOCK_SIZE)
+	if (req->cryptlen % DES_BLOCK_SIZE)
 		return -EINVAL;
 
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_DES | FLG_CBC);
@@ -1006,10 +1006,10 @@ static int stm32_cryp_des_cbc_decrypt(struct skcipher_request *req)
 
 static int stm32_cryp_tdes_ecb_encrypt(struct skcipher_request *req)
 {
-	if (req->nbytes % DES_BLOCK_SIZE)
+	if (req->cryptlen % DES_BLOCK_SIZE)
 		return -EINVAL;
 
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_TDES | FLG_ECB | FLG_ENCRYPT);
@@ -1017,10 +1017,10 @@ static int stm32_cryp_tdes_ecb_encrypt(struct skcipher_request *req)
 
 static int stm32_cryp_tdes_ecb_decrypt(struct skcipher_request *req)
 {
-	if (req->nbytes % DES_BLOCK_SIZE)
+	if (req->cryptlen % DES_BLOCK_SIZE)
 		return -EINVAL;
 
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_TDES | FLG_ECB);
@@ -1028,10 +1028,10 @@ static int stm32_cryp_tdes_ecb_decrypt(struct skcipher_request *req)
 
 static int stm32_cryp_tdes_cbc_encrypt(struct skcipher_request *req)
 {
-	if (req->nbytes % DES_BLOCK_SIZE)
+	if (req->cryptlen % DES_BLOCK_SIZE)
 		return -EINVAL;
 
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_TDES | FLG_CBC | FLG_ENCRYPT);
@@ -1039,10 +1039,10 @@ static int stm32_cryp_tdes_cbc_encrypt(struct skcipher_request *req)
 
 static int stm32_cryp_tdes_cbc_decrypt(struct skcipher_request *req)
 {
-	if (req->nbytes % DES_BLOCK_SIZE)
+	if (req->cryptlen % DES_BLOCK_SIZE)
 		return -EINVAL;
 
-	if (req->nbytes == 0)
+	if (req->cryptlen == 0)
 		return 0;
 
 	return stm32_cryp_crypt(req, FLG_TDES | FLG_CBC);
